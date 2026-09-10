@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Z — 4 pontas</title>
+<meta name="description" content="Um Z de quatro âncoras, moldado com o mouse. Sempre conectado, sempre modular.">
+<meta name="color-scheme" content="dark">
+<link rel="stylesheet" href="./styles/app.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23070708'/%3E%3Cpath d='M8 8 H24 L8 24 H24' fill='none' stroke='%23f4f4f6' stroke-width='5'/%3E%3C/svg%3E">
+</head>
+<body>
+
+  <div id="app">
+    <header class="bar">
+      <h1 class="bar__title">Z <span>4 pontas</span></h1>
+      <div class="tabs" id="tabs"></div>
+      <div class="bar__readout" id="readout"></div>
+    </header>
+
+    <main class="stage">
+      <canvas id="canvas"></canvas>
+      <p class="stage__hint">Arraste as âncoras e o divisor</p>
+    </main>
+
+    <aside class="panel" id="panel"></aside>
+  </div>
+
+  <noscript><p style="padding:24px">Esta ferramenta precisa de JavaScript.</p></noscript>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

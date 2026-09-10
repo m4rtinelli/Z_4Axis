@@ -1,0 +1,504 @@
+/* ============================================================
+   Z3 - one stylesheet.
+
+   The system is Apple's, and the part of it that matters here is
+   not the blue: it is that the chrome recedes. Neutral surfaces,
+   hairline separators, sentence case at a readable size, colour
+   spent only where something is selected or interactive. The
+   artwork is the only thing on screen allowed to be loud.
+   ============================================================ */
+
+:root {
+  /* --- Surfaces -------------------------------------------- */
+  --panel: #ffffff;
+  --bar: rgba(255, 255, 255, 0.72);
+  --workspace: #ebebef;          /* the stage the document sits on */
+  --fill: #f5f5f7;               /* grouped sections, control tracks */
+  --fill-2: #f0f0f2;
+  --track: #e3e3e7;
+
+  /* --- Separators: hairlines, not lines -------------------- */
+  --separator: rgba(0, 0, 0, 0.09);
+  --separator-strong: rgba(0, 0, 0, 0.14);
+
+  /* --- Labels ---------------------------------------------- */
+  --label: #1d1d1f;
+  --label-2: #6e6e73;
+  --label-3: #86868b;
+
+  /* --- Accent ---------------------------------------------- */
+  --blue: #007aff;
+  --blue-tint: rgba(0, 122, 255, 0.10);
+
+  /* --- Geometry -------------------------------------------- */
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 10px;
+
+  /* --- Type ------------------------------------------------ */
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue",
+          "Segoe UI", Roboto, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+
+  /* --- Motion ---------------------------------------------- */
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; margin: 0; }
+
+/* Toggle visibility with `el.hidden`, not with inline styles - and this has
+   to beat the display rules the flex and grid containers set. */
+[hidden] { display: none !important; }
+
+html, body { height: 100%; }
+
+body {
+  background: var(--workspace);
+  color: var(--label);
+  font: 13px/1.45 var(--font);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+#app {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  grid-template-rows: 44px 1fr;
+  grid-template-areas: "bar bar" "stage panel";
+  height: 100%;
+}
+
+/* ---- top bar ---------------------------------------------- */
+
+.bar {
+  grid-area: bar;
+  position: relative;      /* the tabs are centred against this */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--separator);
+  background: var(--bar);
+  /* The one piece of vibrancy in the app, and it is here because this is
+     the strip the document sits under. */
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+}
+
+.bar__title {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 590;
+  letter-spacing: -0.01em;
+  color: var(--label);
+}
+
+.bar__title span {
+  font-weight: 400;
+  color: var(--label-3);
+}
+
+/* ---- tabs -------------------------------------------------- */
+
+/* Centred in the bar, so neither the title nor the readout owns it: the
+   tabs are the one control that changes what the whole window is. */
+.tabs {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.tabs .seg { grid-template-columns: repeat(2, minmax(64px, 1fr)); }
+.tabs .seg button { height: 23px; }
+
+/* The readout is the only monospaced thing in the chrome. Coordinates that
+   reflow as you drag are unreadable in a proportional face - the numbers
+   shift sideways and you cannot tell a change from a re-layout. */
+.bar__readout {
+  display: flex;
+  gap: 14px;
+  font: 11px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--label-3);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.bar__readout b { color: var(--label-2); font-weight: 500; }
+.bar__readout .hot, .bar__readout .hot b { color: var(--blue); }
+
+/* ---- stage ------------------------------------------------ */
+
+.stage {
+  grid-area: stage;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  /* The grid stays - it is the one thing that says this is a drafting
+     surface rather than a document. It just stops shouting. */
+  background:
+    linear-gradient(rgba(0, 0, 0, 0.038) 1px, transparent 1px) 0 0 / 32px 32px,
+    linear-gradient(90deg, rgba(0, 0, 0, 0.038) 1px, transparent 1px) 0 0 / 32px 32px,
+    var(--workspace);
+}
+
+#canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;      /* the canvas owns the pointer, not the scroller */
+  cursor: default;
+}
+
+#canvas[data-over="1"] { cursor: grab; }
+#canvas[data-drag="1"] { cursor: grabbing; }
+
+/* The divider only travels on one axis, and the cursor should say which. */
+#canvas[data-over="x"], #canvas[data-drag="x"] { cursor: ew-resize; }
+#canvas[data-over="y"], #canvas[data-drag="y"] { cursor: ns-resize; }
+
+/* A corner grip resizes on both axes at once. */
+#canvas[data-over="se"], #canvas[data-drag="se"] { cursor: nwse-resize; }
+
+/* The image is repositioned, not resized. */
+#canvas[data-over="m"] { cursor: move; }
+#canvas[data-drag="m"] { cursor: grabbing; }
+
+.stage__hint {
+  position: absolute;
+  left: 16px;
+  bottom: 12px;
+  font-size: 12px;
+  color: var(--label-3);
+  pointer-events: none;
+  transition: opacity 260ms var(--ease);
+}
+
+.stage[data-touched="1"] .stage__hint { opacity: 0; }
+
+/* ---- panel ------------------------------------------------ */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.panel {
+  grid-area: panel;
+  padding: 18px 16px;
+  border-left: 1px solid var(--separator);
+  background: var(--panel);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.field { display: grid; gap: 7px; }
+
+.field__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.field__label { font-size: 13px; color: var(--label); }
+
+.field__value {
+  font: 12px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--label-3);
+}
+
+/* ---- slider ----------------------------------------------- */
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 20px;
+  background: transparent;
+  cursor: default;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--track);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -7px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16), 0 0 0 0.5px rgba(0, 0, 0, 0.07);
+}
+
+input[type="range"]::-moz-range-track {
+  height: 4px; border-radius: 2px; background: var(--track);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 18px; height: 18px; border: 0; border-radius: 50%; background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16), 0 0 0 0.5px rgba(0, 0, 0, 0.07);
+}
+
+input[type="range"]:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16), 0 0 0 3px var(--blue-tint);
+}
+
+/* ---- switch ----------------------------------------------- */
+
+.toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--label);
+  cursor: default;
+  user-select: none;
+}
+
+.toggle input {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: none;
+  position: relative;
+  width: 38px;
+  height: 23px;
+  margin: 0;
+  border-radius: 12px;
+  background: #e6e6ea;
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.04);
+  transition: background 240ms var(--ease);
+  cursor: default;
+}
+
+.toggle input::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18), 0 0 0 0.5px rgba(0, 0, 0, 0.04);
+  transition: transform 240ms var(--ease);
+}
+
+.toggle input:checked { background: var(--blue); }
+.toggle input:checked::after { transform: translateX(15px); }
+.toggle input:focus-visible { box-shadow: 0 0 0 3px var(--blue-tint); }
+
+/* ---- grouped section -------------------------------------- */
+
+.group {
+  display: grid;
+  gap: 14px;
+  padding: 12px 12px 14px;
+  border-radius: var(--r-lg);
+  background: var(--fill);
+}
+
+/* What does not apply is dimmed and inert, never removed. A panel that
+   changes height when you flip a switch reads as the tool losing its
+   place, and a control that vanishes takes the explanation with it. */
+.dim {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+/* ---- a text-weight button, and a note under a control ------ */
+
+.link {
+  border: 0;
+  padding: 0;
+  background: none;
+  font: 12px var(--font);
+  color: var(--blue);
+  cursor: default;
+}
+
+.link[hidden] { display: none; }
+
+.hint {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--label-3);
+}
+
+.group__title {
+  font-size: 13px;
+  font-weight: 510;
+  color: var(--label);
+}
+
+/* ---- a control that sits beside its label, not under it --- */
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* ---- text field and select -------------------------------- */
+
+input.text, select {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 28px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: var(--panel);
+  box-shadow: inset 0 0 0 0.5px var(--separator-strong);
+  font: 13px var(--font);
+  color: var(--label);
+}
+
+input.text::placeholder { color: var(--label-3); }
+
+input.text:focus, select:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--blue), 0 0 0 3px var(--blue-tint);
+}
+
+/* Room for the disclosure caret, drawn as a background so the control keeps
+   the same shape as the text field beside it. */
+select {
+  padding-right: 26px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--label-3) 50%),
+    linear-gradient(135deg, var(--label-3) 50%, transparent 50%);
+  background-position: calc(100% - 13px) 12px, calc(100% - 9px) 12px;
+  background-size: 4px 4px, 4px 4px;
+  background-repeat: no-repeat;
+  cursor: default;
+}
+
+/* ---- colour swatch ---------------------------------------- */
+
+input[type="color"] {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: none;
+  width: 36px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: none;
+  cursor: default;
+}
+
+input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+
+/* The hairline is inset rather than a border, so a white swatch still has
+   an edge and a black one does not gain a halo. */
+input[type="color"]::-webkit-color-swatch {
+  border: 0;
+  border-radius: var(--r-sm);
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.20), 0 1px 2px rgba(0, 0, 0, 0.10);
+}
+
+input[type="color"]::-moz-color-swatch {
+  border: 0;
+  border-radius: var(--r-sm);
+}
+
+input[type="color"]:focus-visible { box-shadow: 0 0 0 3px var(--blue-tint); }
+
+/* ---- segmented control ------------------------------------ */
+
+.seg {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--r-md);
+  background: var(--fill-2);
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.05);
+}
+
+.seg button {
+  height: 25px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  font: 12px var(--font);
+  color: var(--label);
+  cursor: default;
+  transition: background 140ms var(--ease);
+}
+
+.seg button:hover { background: rgba(0, 0, 0, 0.035); }
+
+.seg button[data-on="1"] {
+  font-weight: 510;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.10), 0 0 0 0.5px rgba(0, 0, 0, 0.04);
+}
+
+/* ---- button ----------------------------------------------- */
+
+.btn {
+  width: 100%;
+  height: 30px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--fill);
+  font: 13px var(--font);
+  color: var(--blue);
+  cursor: default;
+  transition: background 140ms var(--ease);
+}
+
+.btn:hover { background: var(--fill-2); }
+.btn:active { background: #e8e8ec; }
+.btn:focus-visible { box-shadow: 0 0 0 3px var(--blue-tint); }
+
+/* ---- footnote --------------------------------------------- */
+
+.panel__note {
+  font-size: 11.5px;
+  line-height: 1.65;
+  color: var(--label-3);
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--separator);
+}
+
+.panel__note b { color: var(--label-2); font-weight: 500; }
+
+.panel__note kbd {
+  font: 11px var(--font-mono);
+  color: var(--label-2);
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 0 0 0.5px var(--separator-strong);
+  padding: 1px 4px;
+}
+
+@media (max-width: 720px) {
+  #app {
+    grid-template-columns: 1fr;
+    grid-template-rows: 44px 1fr auto;
+    grid-template-areas: "bar" "stage" "panel";
+  }
+  .panel { border-left: 0; border-top: 1px solid var(--separator); }
+  .bar__readout { display: none; }
+}
