@@ -189,6 +189,8 @@ export function createStore() {
 
   return {
     get state() { return state; },
+    /** Presets are fully validated and images decoded before a single atomic update. */
+    replace(next) { state = next; emit(); },
     set(key, value) {
       if (state[key] === value) return;
       state = { ...state, [key]: value };

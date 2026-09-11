@@ -60,8 +60,8 @@ export function draw(ctx, cw, ch, state, ui) {
   // is cleared immediately: the mark must never inherit it.
   ctx.save();
   ctx.shadowColor = 'rgba(0, 0, 0, 0.16)';
-  ctx.shadowBlur = 22;
-  ctx.shadowOffsetY = 5;
+  ctx.shadowBlur = state.exporting ? 0 : 22;
+  ctx.shadowOffsetY = state.exporting ? 0 : 5;
   ctx.fillStyle = state.paper;
   ctx.fillRect(f.board.x, f.board.y, f.board.size, f.board.size);
   ctx.restore();

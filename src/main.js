@@ -12,6 +12,7 @@ import { draw } from './render.js';
 import { drawSheet } from './screens.js';
 import { bindPointer, bindKeys } from './interact.js';
 import { buildPanel, buildReadout, buildTabs } from './ui.js';
+import { bindFiles } from './files.js';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -262,4 +263,9 @@ new ResizeObserver(invalidate).observe(canvas);
 window.addEventListener('resize', invalidate);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) paint(); });
 
+bindFiles(store, canvas, () => {
+  ui.hover = ui.drag = ui.sel = ui.sheet = ui.sheetDrag = null;
+  hint.textContent = 'Preset importado';
+  invalidate();
+});
 paint();
